@@ -5,6 +5,10 @@ local defaults = {
     enableAlert = true,
     enableButton = true,
     buttonOnlyWhenAlert = true,
+    framePosition = {
+      x = 0,
+      y = 0
+    },
   },
 }
 
@@ -49,175 +53,93 @@ local options = {
   },
 }
 
-local petTypes = {
-  "Bats",
-  "Bears",
-  "Boars",
-  "Carrion Birds",
-  "Cats",
-  "Crabs",
-  "Crocolisks",
-  "Gorillas",
-  "Hyenas",
-  "Owls",
-  "Raptors",
-  "Scorpids",
-  "Spiders",
-  "Tallstriders",
-  "Turtles",
-  "Wind Serpents",
-  "Wolves",
-}
-local petDiets = {
-  ["Bear"] = { "Bread", "Cheese", "Fish", "Fruit", "Fungus", "Meat" },
-  ["Boar"] = { "Bread", "Cheese", "Fish", "Fruit", "Fungus", "Meat" },
-  ["Crab"] = { "Bread", "Fish" },
-  ["Crocolisk"] = { "Fish", "Meat" },
-  ["Gorilla"] = { "Fruit", "Fungus" },
-  ["Scorpid"] = { "Meat" },
-  ["Tallstrider"] = { "Cheese", "Fruit", "Fungus" },
-  ["Turtle"] = { "Fruit", "Fungus" },
-  ["Bat"] = { "Fruit", "Fungus" },
-  ["Cat"] = { "Fish", "Meat" },
-  ["Owl"] = { "Meat" },
-  ["Raptor"] = { "Meat" },
-  ["Spider"] = { "Meat" },
-  ["Wind Serpent"] = { "Bread", "Cheese", "Fish" },
-  ["Carrion Bird"] = { "Fish", "Meat" },
-  ["Hyena"] = { "Fruit", "Meat" },
-  ["Wolf"] = { "Meat" },
-}
-local foodTypes = {
-  Bread = { "Tough Hunk of Bread", "Freshly Baked Bread", "Moist Cornbread", "Mulgore Spice Bread", "Soft Banana Bread", "Homemade Cherry Pie" },
-  Cheese = { "Darnassian Bleu", "Dalaran Sharp", "Dwarven Mild", "Fine Aged Cheddar", "Alterac Swiss" },
-  Fish = { "Slitherskin Mackerel", "Longjaw Mud Snapper", "Bristle Whisker Catfish", "Rockscale Cod", "Spinefin Halibut" },
-  Fruit = { "Shiny Red Apple", "Tel'Abim Banana", "Snapvine Watermelon", "Goldenbark Apple", "Deep Fried Plantains" },
-  Fungus = { "Forest Mushroom Cap", "Red-speckled Mushroom", "Spongy Morel", "Raw Black Truffle", "Dried King Bolete" },
-  Meat = { "Tough Jerky", "Haunch of Meat", "Mutton Chop", "Cured Ham Steak", "Roasted Quail", "Wild Hog Shank" },
-}
 
 local AceGUI = LibStub("AceGUI-3.0")
 
-local button = CreateFrame("Button", nil, UIParent, "BackdropTemplate")
-button:SetSize(32, 32)
-button:SetPoint("CENTER", 0, 0)
-button:SetFrameStrata("DIALOG")
-button:SetBackdrop({
-  bgFile = "Interface\\Buttons\\UI-Panel-Button-Up",
-  edgeFile = "Interface\\Buttons\\UI-Panel-Button-Border",
-  tile = true,
-  tileSize = 32,
-  edgeSize = 16,
-  insets = { left = 4, right = 4, top = 4, bottom = 4 }
-})
-button:SetBackdropColor(0, 0, 0, 0.5)
-button:SetAttribute("type", "macro")
-button:SetAttribute("macrotext", "/cast Feed Pet; /use Mutton Chop")
+
+function Feed_Me:CreateButton()
+  _G.frame = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+  frame:SetSize(50, 50)
+  frame:SetPoint("CENTER")
+  frame:SetMovable(true)
+  frame:SetUserPlaced(true)
+  frame:EnableMouse(true)
+  frame:RegisterForDrag("LeftButton")
+  frame:SetScript("OnDragStart", frame.StartMoving)
+  frame:SetScript("OnDragStop", function(self)
+    self:StopMovingOrSizing()
+    -- Save the frame's position
+    Feed_Me.db.profile.framePosition.x = self:GetLeft()
+    Feed_Me.db.profile.framePosition.y = self:GetTop()
+  end)
+  frame:SetBackdropColor(1, 0, 0, 0.5)                                            -- Set the frame's background color to semi-transparent red
+  frame:SetScript("OnEnter", function() frame:SetBackdropColor(1, 0, 0, 0.5) end) -- Set the frame's background color to its original color when the mouse enters the frame
+  frame:SetScript("OnLeave", function() frame:SetBackdropColor(0, 0, 0, 1) end)   -- Set the frame's background color to black when the mouse leaves the frame
+  frame:Show()                                                                    -- Make the frame visible
+  frame:SetBackdrop({
+    bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    tile = true,
+    tileSize = 16,
+    edgeSize = 16,
+    insets = { left = 4, right = 4, top = 4, bottom = 4 }
+      }
+)
 
 
+  _G.btn = CreateFrame("Button", nil, frame, "SecureActionButtonTemplate")
+  btn:SetAttribute("type", "macro")
+  btn:SetAttribute("macrotext", "/cast Feed Pet \n/use Mutton Chop")
+  -- btn:SetAttribute("macrotext", "/cast Feed Pet \n/use " .. BestFood)
+  btn:EnableMouse(true)
+  btn:SetNormalTexture("Interface\\Icons\\ability_hunter_beasttraining")
+  btn:SetSize(32, 32)
+  btn:SetPoint("CENTER", frame, "CENTER")
+end
 
 function Feed_Me:OnInitialize()
+  Feed_Me:CreateButton()
   self.db = LibStub("AceDB-3.0"):New("Feed_MeDB", defaults, true)
-  print("WIP")
-  print("WIP")
-  print("WIP")
-  print("WIP")
-  print("WIP")
-  print("WIP")
-  print("WIP")
   LibStub("AceConfig-3.0"):RegisterOptionsTable("Feed_Me", options)
   self.optionsFrame = LibStub('AceConfigDialog-3.0'):AddToBlizOptions('Feed_Me', 'Feed_Me')
-  self.IS_RUNNING = false
-  self:RegisterChatCommand("rl", function() ReloadUI() end) -- Reloads on /rl command
-  self:RegisterChatCommand("feed", "OpenConfigMenu")
+  self:RegisterChatCommand("rl", function() ReloadUI() end)
   self:RegisterChatCommand("fmo", "OpenConfigMenu")
-  self:RegisterChatCommand("fff", function() Feed_Me:Timer() end)
-  Feed_Me:Timer()
-  button:Hide()
+  self:RegisterChatCommand("feedme", "OpenConfigMenu")
+  self:RegisterChatCommand("feedme", "OpenConfigMenu")
+  Feed_Me:FeedPet()
+  _G.frame:Hide()
+  local checkPetHappiness = function() Feed_Me:CheckPetHappiness() end
+  C_Timer.NewTicker(1, checkPetHappiness)
 end
 
-function Feed_Me:ShowButton()
-  button:Show()
-  button:SetText("Feed Pet")
-  button:SetNormalTexture("Interface\\Icons\\INV_Misc_Food_59")
+function Feed_Me:CheckPetHappiness()
+  local petHappiness = GetPetHappiness()
+  if petHappiness == 1 or petHappiness == 2 then
+    Feed_Me:FeedPet()
+    local bestFood = GetBestFood(speciesType)
+    btn:SetAttribute("macrotext", "/cast Feed Pet \n/use " .. bestFood)
+    _G.frame:Show()
+  elseif petHappiness == 3 then
+    _G.frame:Hide()
+  end
 end
+
+-- Check pet happiness every second
+
+
+
 
 function Feed_Me:OpenConfigMenu()
   InterfaceOptionsFrame_OpenToCategory("Feed_Me")
 end
 
-function Feed_Me:Start()
-  print("no")
-end
-
-function Feed_Me:FindFood(petName, diet)
-  -- For each pet's diet, find the corresponding food items in your inventory
-  print(petName, diet, "test")
-  if diet then
-    for _, foodType in ipairs(diet) do
-      for _, foodItem in ipairs(foodTypes[foodType]) do
-        local count = GetItemCount(foodItem)
-        if count > 0 then
-          print(petName .. " likes " .. foodItem .. " and you have " .. count .. " of them in your inventory.")
-        end
-      end
-    end
-  end
-end
-
-function Feed_Me:FindBestFoodItem(petName, diet)
-  local bestFoodItem = nil
-  local bestFoodCount = 0
-  for _, foodType in ipairs(diet) do
-    for _, foodItem in ipairs(foodTypes[foodType]) do
-      local count = GetItemCount(foodItem)
-      if count > bestFoodCount then
-        bestFoodItem = foodItem
-        bestFoodCount = count
-      end
-    end
-  end
-  return bestFoodItem
-end
-
 function Feed_Me:FeedPet()
-  if UnitExists("pet") then
-    local petIcon, petName, petLevel, petType, petLoyalty = GetStablePetInfo(0)
-    local diet = petDiets[petType]
-    local bestFoodItem = Feed_Me:FindBestFoodItem(petName, diet)
-    if bestFoodItem then
-      CastSpellByName("Feed Pet")
-      UseItemByName(bestFoodItem)
-    end
-  end
-end
+  petIcon, petName, petLevel, speciesType, petTalents = GetStablePetInfo(0)
 
-function Feed_Me:Ticker()
-  if UnitExists("pet") then
-    local petIcon, petName, petLevel, petType, petLoyalty = GetStablePetInfo(0)
-    local happiness = GetPetHappiness()
-    -- Get the diet of the pet
-    local diet = petDiets[petType]
-    local bestFoodItem = Feed_Me:FindBestFoodItem(petName, diet)
-    if (happiness == 1) then
-      print(petName, ": FEED ME YOU MONSTER!")
-      if bestFoodItem then
-        -- CastSpellByName("Feed Pet")
-        -- UseItemByName(bestFoodItem)
-      end
-    elseif (happiness == 2) then
-      print(petName, ": FEED ME!")
-      if bestFoodItem then
-        -- CastSpellByName("Feed Pet")
-        -- UseItemByName(bestFoodItem)
-      end
-    end
-    Feed_Me:ShowButton()
-  end
-end
+  local bestFood = GetBestFood(speciesType)
 
-function Feed_Me:Timer()
-  -- local ticker = C_Timer.NewTicker(1, Feed_Me.Ticker)
-  --debug:
-  Feed_Me:Ticker()
+  -- Now you can use the bestFood variable in your code
+  if bestFood ~= nul then
+    -- print("The best food for the pet is: " .. bestFood)
+  end
 end
