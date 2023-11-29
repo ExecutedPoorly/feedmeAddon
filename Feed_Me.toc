@@ -1,0 +1,10 @@
+## Title: Feed_Me
+## Author: X
+## Version: 0.1
+## Interface: 11500
+## SavedVariables: Feed_Me
+## SavedVariables: Feed_MeXDB
+## Notes: A Feed Me addon, with the ability to Feed Me while Feed Me.
+
+Embeds.xml
+Feed_Me.lua
